@@ -18,7 +18,8 @@ Executable parfold-list-benchmarks
   Build-Depends:        base >= 3 && < 5, 
                         criterion >= 0.5 && < 0.6,
                         parallel >= 1.0 && < 3.2,
-                        containers >= 0.1 && < 0.5
+                        containers >= 0.1 && < 0.5,
+                        vector >= 0.7 && < 0.8
   GHC-Options:          -threaded -rtsopts
 
 Source-Repository head
