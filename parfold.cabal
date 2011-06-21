@@ -1,0 +1,23 @@
+Name:                   parfold
+Version:                0.1
+Cabal-Version:          >= 1.6
+Synopsis:               Performance of different parallel fold functions
+Category:               Parallelism, Performance, Testing
+License:                BSD3
+License-File:           LICENSE
+Author:                 Sebastian Fischer
+Maintainer:             Sebastian Fischer
+Bug-Reports:            https://github.com/sebfisch/parfold/issues
+Homepage:               https://github.com/sebfisch/parfold
+Build-Type:             Simple
+
+Extra-Source-Files:     README.markdown
+
+Executable parfold-list-benchmarks
+  Main-Is:              list-benchmarks.hs
+  Build-Depends:        base >= 3 && < 5, criterion >= 0.5 && < 0.6
+  GHC-Options:          -threaded
+
+Source-Repository head
+  type:     git
+  location: git://github.com/sebfisch/parfold.git
