@@ -1,2 +1,1 @@
-# Performance comparison of different implementations of parallel fold
-# operations in Haskell
+# Performance comparison of different implementations of parallel fold functions in Haskell
