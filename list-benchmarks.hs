@@ -5,7 +5,7 @@ import GHC.Conc         ( numCapabilities )
 import Control.Parallel ( par, pseq )
 
 import Data.Monoid      ( Monoid(..), Sum(..) )
-import Data.Foldable    ( foldMap, foldl' )
+import Data.Foldable    ( foldl' )
 
 import Data.Sequence    ( Seq )
 import qualified Data.Sequence as Seq
@@ -16,23 +16,21 @@ import qualified Data.Vector.Unboxed as Vec
 main :: IO ()
 main = defaultMain [
          bgroup "seq" [
-           bench "List"    $ whnf sum [1..len],
-           bench "Seq"     $ whnf (foldl' (+) 0) (Seq.fromList [1..len]),
-           bench "UVector" $ whnf (Vec.foldl' (+) 0) (Vec.fromList [1..len])],
+           bench "List" $ whnf sum [1..len],
+           bench "Seq"  $ whnf (foldl' (+) 0) (Seq.fromList [1..len]),
+           bench "Vec"  $ whnf (Vec.foldl' (+) 0) (Vec.generate len succ)],
          bgroup "par" [
-           bench "List"    $ sumWith foldList [1..len],
-           bench "Seq"     $ sumWith foldSeq  [1..len],
-           bench "UVector" $ sumWith foldVec  [1..len]]]
-  where len = 100000
+           bench "List" $ sumWith foldList [1..len],
+           bench "Seq"  $ sumWith foldSeq (Seq.fromList [1..len]),
+           bench "Vec"  $ sumWith foldVec (Vec.generate len succ)]]
+  where len = 10000000 :: Int
 
-type ListFold m a = (a -> m) -> [a] -> m
-
-sumWith :: ListFold (Sum Int) Int -> [Int] -> Pure
+sumWith :: ((Int -> Sum Int) -> a -> Sum Int) -> a -> Pure
 sumWith fold = whnf (getSum . fold Sum)
 
 -- ordinary lists
-foldList :: Monoid m => ListFold m a
-{-# SPECIALIZE foldList :: ListFold (Sum Int) Int #-}
+foldList :: Monoid m => (a -> m) -> [a] -> m
+{-# SPECIALIZE foldList :: (Int -> Sum Int) -> [Int] -> Sum Int #-}
 foldList = foldListWithSparks numCapabilities mappend mempty
 
 -- with upper limit for sparks
@@ -50,9 +48,9 @@ foldListWithSparks cnt append empty f = worker cnt
         y       = worker (n-m) ys
 
 -- finger trees
-foldSeq :: Monoid m => ListFold m a
-{-# SPECIALIZE foldSeq :: ListFold (Sum Int) Int #-}
-foldSeq f = foldSeqWithSparks numCapabilities mappend mempty f . Seq.fromList
+foldSeq :: Monoid m => (a -> m) -> Seq a -> m
+{-# SPECIALIZE foldSeq :: (Int -> Sum Int) -> Seq Int -> Sum Int #-}
+foldSeq f = foldSeqWithSparks numCapabilities mappend mempty f
 
 foldSeqWithSparks :: Int -> (m -> m -> m) -> m -> (a -> m) -> Seq a -> m
 foldSeqWithSparks cnt append empty f sq = worker cnt sq
@@ -69,8 +67,9 @@ foldSeqWithSparks cnt append empty f sq = worker cnt sq
                                      in x `par` y `pseq` append x y
 
 -- unboxed vectors
-foldVec :: (Monoid m, Unbox a) => ListFold m a
-foldVec f = foldVecWithSparks numCapabilities mappend mempty f . Vec.fromList
+foldVec :: (Monoid m, Unbox a) => (a -> m) -> Vector a -> m
+{-# SPECIALIZE foldVec :: (Int -> Sum Int) -> Vector Int -> Sum Int #-}
+foldVec f = foldVecWithSparks numCapabilities mappend mempty f
 
 foldVecWithSparks :: Unbox a
                   => Int -> (m -> m -> m) -> m -> (a -> m) -> Vector a -> m
