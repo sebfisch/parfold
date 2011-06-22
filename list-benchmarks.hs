@@ -23,7 +23,7 @@ main = defaultMain [
            bench "List" $ sumWith foldList [1..len],
            bench "Seq"  $ sumWith foldSeq (Seq.fromList [1..len]),
            bench "Vec"  $ sumWith foldVec (Vec.generate len succ)]]
-  where len = 10000000 :: Int
+  where len = 1000000 :: Int
 
 sumWith :: ((Int -> Sum Int) -> a -> Sum Int) -> a -> Pure
 sumWith fold = whnf (getSum . fold Sum)
@@ -40,7 +40,7 @@ foldListWithSparks cnt append empty f = worker cnt
     worker _ []               = empty
     worker _ [x]              = f $! x
     worker n xsys | n <= 1    = foldl' (flip (append . f)) empty xsys
-                  | otherwise = x `par` y `pseq` append x y
+                  | otherwise = y `par` x `pseq` append x y
       where
         (xs,ys) = splitAt (length xsys `div` 2) xsys
         m       = n `div` 2
@@ -64,7 +64,7 @@ foldSeqWithSparks cnt append empty f sq = worker cnt sq
                                         m       = n `div` 2
                                         x       = worker m xs
                                         y       = worker (n-m) ys
-                                     in x `par` y `pseq` append x y
+                                     in y `par` x `pseq` append x y
 
 -- unboxed vectors
 foldVec :: (Monoid m, Unbox a) => (a -> m) -> Vector a -> m
@@ -84,4 +84,4 @@ foldVecWithSparks cnt append empty f vec = worker cnt vec
                                         m       = n `div` 2
                                         x       = worker m xs
                                         y       = worker (n-m) ys
-                                     in x `par` y `pseq` append x y
+                                     in y `par` x `pseq` append x y

@@ -30,4 +30,4 @@ foldVecWithSparks cnt append empty f vec = worker cnt vec
                                         m       = n `div` 2
                                         x       = worker m xs
                                         y       = worker (n-m) ys
-                                     in x `par` y `pseq` append x y
+                                     in y `par` x `pseq` append x y
