@@ -19,7 +19,8 @@ Executable parfold-list-benchmarks
                         criterion >= 0.5 && < 0.6,
                         parallel >= 1.0 && < 3.2,
                         containers >= 0.1 && < 0.5,
-                        vector >= 0.7.1 && < 0.8
+                        vector >= 0.7.1 && < 0.8,
+                        mersenne-random >= 1.0 && < 1.1
   GHC-Options:          -threaded -rtsopts
 
 Source-Repository head

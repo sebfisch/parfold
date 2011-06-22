@@ -1,4 +1,4 @@
-import Criterion.Main   ( defaultMain, bgroup, bench, whnf, Pure )
+import Criterion.Main   ( defaultMain, bench, whnf, Pure )
 
 import GHC.Conc         ( numCapabilities )
 
@@ -7,23 +7,17 @@ import Control.Parallel ( par, pseq )
 import Data.Monoid      ( Monoid(..), Sum(..) )
 import Data.Foldable    ( foldl' )
 
-import Data.Sequence    ( Seq )
-import qualified Data.Sequence as Seq
-
 import Data.Vector.Unboxed ( Vector, Unbox )
 import qualified Data.Vector.Unboxed as Vec
+import System.Random.Mersenne ( getStdRandom, randoms )
 
 main :: IO ()
-main = defaultMain [
-         bgroup "seq" [
-           bench "List" $ whnf sum [1..len],
-           bench "Seq"  $ whnf (foldl' (+) 0) (Seq.fromList [1..len]),
-           bench "Vec"  $ whnf (Vec.foldl' (+) 0) (Vec.generate len succ)],
-         bgroup "par" [
-           bench "List" $ sumWith foldList [1..len],
-           bench "Seq"  $ sumWith foldSeq (Seq.fromList [1..len]),
-           bench "Vec"  $ sumWith foldVec (Vec.generate len succ)]]
-  where len = 1000000 :: Int
+main = do let len = 10000000
+          list <- fmap (take len . map (`rem`100)) $ getStdRandom randoms
+          let vec = Vec.fromList (list :: [Int])
+          defaultMain [
+            bench "List" $ sumWith foldList list,
+            bench "Vec"  $ sumWith foldVec vec]
 
 sumWith :: ((Int -> Sum Int) -> a -> Sum Int) -> a -> Pure
 sumWith fold = whnf (getSum . fold Sum)
@@ -46,25 +40,6 @@ foldListWithSparks cnt append empty f = worker cnt
         m       = n `div` 2
         x       = worker m xs
         y       = worker (n-m) ys
-
--- finger trees
-foldSeq :: Monoid m => (a -> m) -> Seq a -> m
-{-# SPECIALIZE foldSeq :: (Int -> Sum Int) -> Seq Int -> Sum Int #-}
-foldSeq f = foldSeqWithSparks numCapabilities mappend mempty f
-
-foldSeqWithSparks :: Int -> (m -> m -> m) -> m -> (a -> m) -> Seq a -> m
-foldSeqWithSparks cnt append empty f sq = worker cnt sq
-  where
-    worker n s | n <= 1    = foldl' (flip (append . f)) empty s
-               | otherwise = case Seq.length s of
-                               0 -> empty
-                               1 -> f $! Seq.index s 0
-                               k -> let l       = k `div` 2
-                                        (xs,ys) = Seq.splitAt l s
-                                        m       = n `div` 2
-                                        x       = worker m xs
-                                        y       = worker (n-m) ys
-                                     in y `par` x `pseq` append x y
 
 -- unboxed vectors
 foldVec :: (Monoid m, Unbox a) => (a -> m) -> Vector a -> m
